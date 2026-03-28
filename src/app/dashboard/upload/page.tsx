@@ -1,57 +1,119 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UploadCloud, File, Image as ImageIcon, CheckCircle, XCircle, AlertCircle, Loader2, BrainCircuit } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function UploadPage() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [credits, setCredits] = useState<number | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    async function getProfile() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('credits')
+          .eq('id', user.id)
+          .single();
+        if (data) setCredits(data.credits);
+      } else {
+        setCredits(10.00); // Demo fallback
+      }
+    }
+    getProfile();
+  }, []);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
+    setErrorMsg(null);
     if (e.dataTransfer.files?.length) {
       setFiles(Array.from(e.dataTransfer.files));
     }
   };
 
-  const handleProcess = () => {
+  const handleProcess = async () => {
+    if (files.length === 0) return;
+    setErrorMsg(null);
     setUploading(true);
-    // Simulate API call and redirect
-    setTimeout(() => {
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // In this demo version, since we don't have a login wall, we use a fixed sample sub or the real one
+      const userId = user?.id || '00000000-0000-0000-0000-000000000000'; 
+
+      // Send to our new AI route
+      const response = await fetch('/api/extract', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileName: files[0].name,
+          fileType: files[0].type,
+          userId,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to process document');
+      }
+
+      router.push(`/dashboard/validation/${result.docId}`);
+    } catch (err: any) {
+      setErrorMsg(err.message);
       setUploading(false);
-      router.push("/dashboard/validation/DOC-2024-NEW");
-    }, 2500);
+    }
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Upload & Extract</h1>
-        <p className="text-gray-500 mt-1">Upload documents to run through the AI extraction pipeline.</p>
+    <div className="max-w-4xl mx-auto space-y-10 animate-in slide-in-from-bottom duration-500">
+      <div className="text-left border-l-4 border-[#2E7D32] pl-6 py-2">
+        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Upload & Extract</h1>
+        <p className="text-gray-500 mt-2 font-medium">Powering your workflow with precision-AI document understanding.</p>
       </div>
+
+      {errorMsg && (
+        <div className="bg-red-50 border border-red-100 p-4 rounded-xl flex items-center space-x-3 text-red-700 shadow-sm animate-pulse">
+          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          <p className="text-sm font-bold tracking-tight">{errorMsg}</p>
+        </div>
+      )}
 
       <div 
         onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
         onDragLeave={() => setIsDragOver(false)}
         onDrop={handleDrop}
-        className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all ${
-          isDragOver ? "border-[#2E7D32] bg-[#E8F5E9] scale-[1.02]" : "border-gray-300 bg-white hover:border-gray-400"
+        className={`relative border-2 border-dashed rounded-3xl p-16 text-center transition-all duration-300 ${
+          isDragOver 
+            ? "border-[#2E7D32] bg-[#E8F5E9] scale-[1.01] shadow-xl" 
+            : "border-gray-200 bg-white hover:border-[#2E7D32]/50 hover:bg-gray-50/50"
         }`}
       >
-        <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm ring-4 ring-white">
-          <UploadCloud className={`w-10 h-10 ${isDragOver ? "text-[#2E7D32]" : "text-gray-400"}`} />
+        <div className={`w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-inner transition-all duration-500 ${
+          isDragOver ? 'bg-white scale-110 rotate-3 shadow-lg' : 'bg-gray-50'
+        }`}>
+          <UploadCloud className={`w-12 h-12 ${isDragOver ? "text-[#2E7D32]" : "text-gray-300"}`} />
         </div>
-        <h3 className="text-xl font-bold text-gray-900 mb-2">Drag & Drop files here</h3>
-        <p className="text-gray-500 mb-6 max-w-sm mx-auto">
-          Supported formats: PDF, JPG, PNG, XLSX. Max file size: 50MB.
+        
+        <h3 className="text-2xl font-extrabold text-gray-900 mb-2">Drop your files here</h3>
+        <p className="text-gray-400 mb-10 max-w-sm mx-auto font-medium">
+          Automate invoices, receipts, and forms in seconds.
+          <span className="block mt-1 text-xs text-gray-300 font-bold uppercase tracking-widest">Supports PDF, PNG, JPG</span>
         </p>
         
-        <label className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-3 rounded-lg font-medium cursor-pointer transition-colors shadow-sm inline-flex items-center">
-          Browse Files
+        <label className="bg-[#111827] hover:bg-black text-white px-8 py-4 rounded-xl font-bold cursor-pointer transition-all shadow-lg inline-flex items-center group active:scale-95">
+          Choose Files
           <input 
             type="file" 
             className="hidden" 
@@ -66,70 +128,75 @@ export default function UploadPage() {
       </div>
 
       {files.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4">
-          <h4 className="font-bold text-gray-900 border-b border-gray-100 pb-3 flex items-center justify-between">
-            <span>Files to process ({files.length})</span>
-            <span className="text-sm font-medium text-gray-500">{files.reduce((acc, f) => acc + f.size, 0) / 1000000} MB total</span>
-          </h4>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-xl p-8 space-y-6 animate-in fade-in zoom-in duration-300">
+          <div className="flex items-center justify-between border-b border-gray-50 pb-5">
+            <h4 className="font-extrabold text-gray-900">
+              Selected Document
+            </h4>
+            <button 
+                onClick={() => setFiles([])}
+                className="text-xs font-bold text-gray-400 hover:text-red-500 transition-colors uppercase tracking-widest"
+              >
+                Clear All
+              </button>
+          </div>
           
-          <ul className="space-y-3">
+          <div className="space-y-4">
             {files.map((file, idx) => (
-              <li key={idx} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-lg bg-gray-50 border border-gray-200 hover:border-[#2E7D32] transition-colors group">
-                <div className="flex items-center space-x-4 mb-3 sm:mb-0">
-                  <div className={`p-2 rounded flex-shrink-0 ${
-                    file.name.endsWith('.pdf') ? 'bg-red-50 text-red-600' :
-                    file.name.endsWith('.xlsx') ? 'bg-green-50 text-green-600' :
-                    'bg-blue-50 text-blue-600'
+              <div key={idx} className="flex items-center justify-between p-5 rounded-2xl bg-gray-50/50 border border-gray-100 group">
+                <div className="flex items-center space-x-5">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${
+                    file.name.endsWith('.pdf') ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-50'
                   }`}>
-                    {file.name.endsWith('.pdf') ? <File className="w-6 h-6" /> : <ImageIcon className="w-6 h-6" />}
+                    {file.name.endsWith('.pdf') ? <File className="w-6 h-6" /> : <ImageIcon className="w-6 h-6 text-blue-500" />}
                   </div>
-                  <div className="overflow-hidden">
-                    <p className="font-semibold text-gray-900 truncate max-w-xs">{file.name}</p>
-                    <p className="text-sm text-gray-500 font-medium">{(file.size / 1024).toFixed(1)} KB</p>
+                  <div>
+                    <p className="font-bold text-gray-900 text-sm">{file.name}</p>
+                    <p className="text-[10px] text-gray-400 font-extrabold tracking-widest uppercase">{(file.size / 1024).toFixed(1)} KB</p>
                   </div>
                 </div>
-                
-                <div className="flex items-center space-x-4 w-full sm:w-auto mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-0 border-gray-200">
-                  <span className="text-xs font-semibold px-2 py-1 bg-gray-200 text-gray-700 rounded-full flex items-center shrink-0">
-                    <AlertCircle className="w-3 h-3 mr-1" />
-                    Pending OCR
-                  </span>
-                  <button 
-                    onClick={() => setFiles(files.filter((_, i) => i !== idx))}
-                    className="text-gray-400 hover:text-red-500 transition-colors ml-auto sm:ml-0 p-1"
-                    title="Remove File"
-                  >
-                    <XCircle className="w-5 h-5" />
-                  </button>
+                <div className="flex items-center space-x-3">
+                   <div className="text-[10px] font-bold px-3 py-1 bg-[#E8F5E9] text-[#2E7D32] rounded-lg shadow-sm ring-1 ring-[#2E7D32]/10">
+                      READY TO EXTRACT
+                   </div>
                 </div>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
 
-          <div className="pt-6 mt-4 border-t border-gray-100 flex items-center justify-between bg-white sticky bottom-0">
-            <div className="text-sm text-gray-600 flex items-center">
-              Processing cost: <span className="font-bold text-gray-900 ml-1"> ${(0.05 * files.length).toFixed(2)}</span>
+          <div className="pt-8 border-t border-gray-50 flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div className="flex flex-col">
+               <div className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1">Estimated Cost</div>
+               <div className="text-xl font-extrabold text-gray-900 flex items-center">
+                  $0.05
+                  <span className="ml-2 text-[10px] font-bold text-gray-400 uppercase">per extraction</span>
+               </div>
             </div>
+            
             <button 
               onClick={handleProcess}
-              disabled={uploading}
-              className={`bg-[#2E7D32] hover:bg-[#1B5E20] text-white px-8 py-3 rounded-lg font-bold transition-all shadow-md flex items-center ${
-                uploading ? 'opacity-70 cursor-not-allowed' : ''
-              }`}
+              disabled={uploading || (credits !== null && credits < 0.05)}
+              className={`w-full sm:w-auto bg-[#2E7D32] hover:bg-[#1B5E20] text-white px-10 py-4 rounded-xl font-bold transition-all shadow-xl hover:shadow-2xl flex items-center justify-center min-w-[220px] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group`}
             >
               {uploading ? (
                 <>
                   <Loader2 className="w-5 h-5 mr-3 animate-spin" />
-                  Extracting...
+                  AI Processing...
                 </>
               ) : (
                 <>
-                  <BrainCircuit className="w-5 h-5 mr-3" />
-                  Start AI Extraction
+                  <BrainCircuit className="w-5 h-5 mr-3 group-hover:rotate-12 transition-transform" />
+                  Run AI Pipeline
                 </>
               )}
             </button>
           </div>
+          
+          {(credits !== null && credits < 0.05) && (
+            <p className="text-center text-xs font-bold text-red-500 uppercase tracking-widest mt-4">
+               Insufficient Credits. Please recharge to continue.
+            </p>
+          )}
         </div>
       )}
     </div>

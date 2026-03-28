@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
@@ -13,11 +13,52 @@ import {
   Bell,
   LogOut,
   User,
-  CreditCard
+  CreditCard,
+  Loader2
 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const [credits, setCredits] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function getProfile() {
+      // For MVP without full Auth complex setup, we assume a 'dummy-user' or use existing sessions if they were there
+      // In a real app, this would be supabase.auth.getUser()
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        // Fallback for demo/dev if not logged in
+        setCredits(10.00);
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('credits')
+        .eq('id', user.id)
+        .single();
+
+      if (error && error.code === 'PGRST116') {
+        // No profile found, create one with starting $10 credit
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert([{ id: user.id, credits: 10.00, email: user.email }])
+          .select()
+          .single();
+        
+        if (!createError) setCredits(10.00);
+      } else if (data) {
+        setCredits(data.credits);
+      }
+      setLoading(false);
+    }
+
+    getProfile();
+  }, []);
 
   const navItems = [
     { label: "Overview", icon: LayoutDashboard, href: "/dashboard" },
@@ -57,14 +98,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </div>
 
         <div className="p-4 border-t border-gray-100">
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <div className="flex items-center text-sm font-medium text-gray-900 mb-2">
-              <CreditCard className="w-4 h-4 mr-2 text-gray-500" />
-              Credit Balance
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+            <div className="flex items-center text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
+              <CreditCard className="w-3.5 h-3.5 mr-2" />
+              Your Balance
             </div>
-            <div className="text-2xl font-bold text-[#2E7D32] mb-3">$42.50</div>
-            <Link href="/dashboard/credits" className="block text-center text-xs font-semibold bg-white border border-gray-300 text-gray-700 py-2 rounded shadow-sm hover:bg-gray-50">
-              Recharge
+            <div className="text-2xl font-bold text-[#2E7D32] mb-3 flex items-center">
+              {loading ? <Loader2 className="w-5 h-5 animate-spin text-gray-300" /> : `$${credits?.toFixed(2)}`}
+            </div>
+            <Link href="/dashboard/credits" className="block text-center text-xs font-bold bg-[#E8F5E9] text-[#2E7D32] py-2.5 rounded-md hover:bg-[#C8E6C9] transition-colors">
+              Manage Wallet
             </Link>
           </div>
         </div>
@@ -73,38 +116,37 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Topbar */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0">
+        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 shadow-sm z-10">
           <div className="flex items-center md:hidden">
             <BrainCircuit className="w-6 h-6 text-[#2E7D32] mr-2" />
             <span className="font-bold text-lg text-gray-900">DataFlow AI</span>
           </div>
           
           <div className="hidden md:block flex-1">
-            {/* Can add search here later */}
           </div>
 
-          <div className="flex items-center space-x-4">
-            <button className="text-gray-400 hover:text-gray-600 relative p-1">
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+          <div className="flex items-center space-x-5">
+            <button className="text-gray-400 hover:text-[#2E7D32] relative p-1 transition-colors">
+              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
               <Bell className="w-5 h-5" />
             </button>
             
-            <div className="h-6 w-px bg-gray-200 mx-2"></div>
+            <div className="h-6 w-px bg-gray-200"></div>
             
             <div className="flex items-center space-x-3 cursor-pointer group">
               <div className="hidden md:block text-right">
-                <div className="text-sm font-medium text-gray-900 leading-none mb-1">Jane Doe</div>
-                <div className="text-xs text-gray-500 leading-none">Admin</div>
+                <div className="text-sm font-bold text-gray-900 leading-none mb-1 group-hover:text-[#2E7D32] transition-colors">Account User</div>
+                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter leading-none">Standard Tier</div>
               </div>
-              <div className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 group-hover:bg-gray-200 border border-gray-200 transition-colors">
+              <div className="w-9 h-9 bg-gray-50 rounded-full flex items-center justify-center text-gray-400 border border-gray-200 group-hover:border-[#2E7D32] group-hover:bg-[#E8F5E9] group-hover:text-[#2E7D32] transition-all overflow-hidden shadow-sm">
                 <User className="w-5 h-5" />
               </div>
             </div>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto w-full">
-          <div className="p-6 md:p-8 max-w-7xl mx-auto">
+        <div className="flex-1 overflow-y-auto w-full scroll-smooth">
+          <div className="p-6 md:p-8 max-w-7xl mx-auto min-h-full">
             {children}
           </div>
         </div>
