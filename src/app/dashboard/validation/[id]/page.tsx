@@ -190,7 +190,7 @@ export default function ValidationScreen() {
                                 item.conf < 90 ? "border-yellow-300 focus:border-yellow-500 focus:ring-yellow-200" : "border-transparent hover:border-gray-200 focus:border-gray-300"
                               }`}
                             />
-                            {item.warning && <AlertTriangle className="w-3 h-3 text-yellow-600 absolute right-2 top-2.5" title={item.warning} />}
+                            {item.warning && <span title={item.warning}><AlertTriangle className="w-3 h-3 text-yellow-600 absolute right-2 top-2.5" /></span>}
                           </div>
                         </td>
                         <td className="p-2 w-16">

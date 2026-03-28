@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { UploadCloud, File, Image as ImageIcon, CheckCircle, XCircle, AlertCircle, Loader2 } from "lucide-react";
+import { UploadCloud, File, Image as ImageIcon, CheckCircle, XCircle, AlertCircle, Loader2, BrainCircuit } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function UploadPage() {
