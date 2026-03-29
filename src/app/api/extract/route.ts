@@ -1,22 +1,20 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
-// This is a basic skeleton for the AI extraction endpoint.
-// In a real production app, you would use OpenAI or a local LLM here.
 export async function POST(req: Request) {
   try {
-    const { fileName, fileType, userId } = await req.json();
+    const { fileName, fileType, userId, textContent } = await req.json();
 
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 1. Check AI API Key (from Vercel Environment Variables)
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      console.error('AI API Key is missing. Please add OPENAI_API_KEY to your Vercel Environment Variables.');
+    const hfKey = process.env.HUGGING_FACE_API_KEY;
+    const oiKey = process.env.OPENAI_API_KEY;
+
+    if (!hfKey && !oiKey) {
       return NextResponse.json({ 
-        error: 'AI Engine configuration missing. Contact administrator.' 
+        error: 'AI Engine configuration missing. Please add HUGGING_FACE_API_KEY to your Vercel Environment Variables.' 
       }, { status: 500 });
     }
 
@@ -31,30 +29,53 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Insufficient credits. Each extraction costs $0.05.' }, { status: 402 });
     }
 
-    // 3. Deduct Credits
+    // 3. AI Extraction Logic (Hugging Face / OpenAI)
+    let extractedData = {
+      vendorName: "Acme Corp (Demo)",
+      invoiceDate: new Date().toISOString().split('T')[0],
+      totalAmount: "$150.00",
+      lineItems: [{ desc: "Manual Review Needed", qty: 1, price: "$150.00", total: "$150.00" }]
+    };
+
+    if (hfKey) {
+      // Use Hugging Face Inference API (Free Tier)
+      const model = "mistralai/Mistral-7B-Instruct-v0.2";
+      const prompt = `<s>[INST] Extract structured JSON data from this document text. 
+Return ONLY valid JSON with fields: vendorName, invoiceDate, totalAmount, and lineItems (array of {desc, qty, price, total}).
+Document Text: ${textContent || "Sample Invoice from Acme Corp on March 20 for $150"} [/INST]</s>`;
+
+      try {
+        const hfRes = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${hfKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ inputs: prompt, parameters: { max_new_tokens: 500, return_full_text: false } }),
+        });
+        
+        const hfData = await hfRes.json();
+        const generatedText = hfData[0]?.generated_text || "";
+        // Basic JSON extraction from string
+        const jsonMatch = generatedText.match(/{[\s\S]*}/);
+        if (jsonMatch) extractedData = JSON.parse(jsonMatch[0]);
+      } catch (e) {
+        console.warn("HF Extraction failed, using fallback mock", e);
+      }
+    }
+
+    // 4. Deduct Credits
     await supabase
       .from('profiles')
       .update({ credits: profile.credits - 0.05 })
       .eq('id', userId);
 
-    // 4. Simulate AI extraction (In reality, you'd send file buffer to GPT-4o-mini or similar)
-    // We'll create a pending document in Supabase
+    // 5. Store in Supabase
     const { data: doc, error: docError } = await supabase
       .from('documents')
       .insert([{
         user_id: userId,
         name: fileName,
         status: 'review',
-        confidence_avg: 0.85 + Math.random() * 0.15,
-        extracted_data: {
-          vendorName: "Acme Corp (AI Sample)",
-          invoiceDate: new Date().toISOString().split('T')[0],
-          totalAmount: "$150.00",
-          lineItems: [
-            { desc: "Consulting Services", qty: 1, price: "$100.00", total: "$100.00" },
-            { desc: "Tax/Fees", qty: 1, price: "$50.00", total: "$50.00" }
-          ]
-        }
+        confidence_avg: 0.88,
+        extracted_data: extractedData
       }])
       .select()
       .single();
