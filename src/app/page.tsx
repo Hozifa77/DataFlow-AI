@@ -15,7 +15,7 @@ export default function LandingPage() {
               <div className="bg-[#2E7D32] p-1.5 rounded-lg flex items-center justify-center">
                 <BrainCircuit className="w-6 h-6 text-white" />
               </div>
-              <span className="font-bold text-xl text-gray-900 tracking-tight">DataFlow AI</span>
+              <span className="font-bold text-xl text-gray-900 tracking-tight">Loro Entry</span>
             </div>
             <div className="hidden md:flex items-center space-x-8">
               <a href="#features" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Features</a>
@@ -192,15 +192,15 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center">
           <div className="flex items-center space-x-2 mb-4 md:mb-0">
             <BrainCircuit className="w-6 h-6 text-gray-500" />
-            <span className="font-bold text-lg text-gray-200">DataFlow AI</span>
+            <span className="font-bold text-lg text-gray-200">Loro Entry</span>
           </div>
           <div className="flex space-x-6">
-            <a href="#" className="hover:text-white transition-colors">Privacy</a>
-            <a href="#" className="hover:text-white transition-colors">Terms</a>
-            <a href="#" className="hover:text-white transition-colors">Security</a>
-            <a href="#" className="hover:text-white transition-colors">Contact</a>
+            <a href="/privacy" className="hover:text-white transition-colors">Privacy</a>
+            <a href="/terms" className="hover:text-white transition-colors">Terms</a>
+            <a href="/agreement" className="hover:text-white transition-colors">Agreement</a>
+            <a href="mailto:support@loroentry.com" className="hover:text-white transition-colors">Contact</a>
           </div>
-          <p className="text-sm mt-4 md:mt-0">© 2026 DataFlow AI. All rights reserved.</p>
+          <p className="text-sm mt-4 md:mt-0">© 2026 Loro Entry. All rights reserved.</p>
         </div>
       </footer>
     </div>

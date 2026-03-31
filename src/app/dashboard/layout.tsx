@@ -88,7 +88,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col hidden md:flex">
         <Link href="/" className="h-16 flex items-center px-6 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer">
           <BrainCircuit className="w-6 h-6 text-[#2E7D32] mr-2" />
-          <span className="font-bold text-lg text-gray-900 tracking-tight">DataFlow AI</span>
+          <span className="font-bold text-lg text-gray-900 tracking-tight">Loro Entry</span>
         </Link>
         
         <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
@@ -133,7 +133,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 shadow-sm z-10">
           <Link href="/" className="flex items-center md:hidden hover:opacity-80 transition-opacity">
             <BrainCircuit className="w-6 h-6 text-[#2E7D32] mr-2" />
-            <span className="font-bold text-lg text-gray-900">DataFlow AI</span>
+            <span className="font-bold text-lg text-gray-900">Loro Entry</span>
           </Link>
           
           <div className="hidden md:block flex-1">

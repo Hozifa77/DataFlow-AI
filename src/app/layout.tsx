@@ -9,8 +9,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "DataFlow AI | Enterprise Data Entry Automation",
-  description: "Automate Data Entry with AI Accuracy. The complete suite for extracting structured data from any document format.",
+  title: "Loro Entry – AI Data Entry Tool",
+  description: "Turn documents into structured data instantly using AI.",
 };
 
 export default function RootLayout({
