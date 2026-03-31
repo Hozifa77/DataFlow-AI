@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { AppProvider } from "@/contexts/AppContext";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -20,7 +21,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} min-h-screen bg-gray-50 antialiased`}>
       <body className="min-h-screen font-sans text-gray-900 bg-gray-50">
-        {children}
+        <AppProvider>
+          {children}
+        </AppProvider>
       </body>
     </html>
   );
