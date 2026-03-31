@@ -9,12 +9,17 @@ import {
   ArrowUpRight,
   Upload,
   Loader2,
-  FileQuestion
+  FileQuestion,
+  Wallet,
+  TrendingUp,
+  Zap
 } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { useApp } from "@/contexts/AppContext";
 
 export default function DashboardOverview() {
+  const { credits, initialCredits, creditsUsed, usagePercent, usageColor } = useApp();
   const [stats, setStats] = useState([
     { label: "Documents Processed", value: "0", icon: FileText, color: "text-blue-600", bg: "bg-blue-50" },
     { label: "AI Accuracy Rate", value: "0%", icon: CheckCircle2, color: "text-green-600", bg: "bg-green-50" },
@@ -35,7 +40,6 @@ export default function DashboardOverview() {
         return;
       }
 
-      // Fetch Stats
       const { count: totalDocs } = await supabase
         .from('documents')
         .select('*', { count: 'exact', head: true });
@@ -46,7 +50,6 @@ export default function DashboardOverview() {
         .eq('id', user.id)
         .single();
 
-      // Fetch Recent Docs
       const { data: docs } = await supabase
         .from('documents')
         .select('*')
@@ -67,6 +70,14 @@ export default function DashboardOverview() {
     fetchData();
   }, []);
 
+  const progressColor = 
+    usageColor === "green" ? "bg-[#2E7D32]" :
+    usageColor === "yellow" ? "bg-yellow-500" : "bg-red-500";
+
+  const progressBg = 
+    usageColor === "green" ? "bg-[#E8F5E9]" :
+    usageColor === "yellow" ? "bg-yellow-50" : "bg-red-50";
+
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
@@ -83,6 +94,47 @@ export default function DashboardOverview() {
           <Upload className="w-5 h-5 mr-2 group-hover:-translate-y-0.5 transition-transform" />
           New Extraction
         </Link>
+      </div>
+
+      {/* Credit Usage Progress */}
+      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-[#E8F5E9] rounded-xl flex items-center justify-center">
+              <Wallet className="w-5 h-5 text-[#2E7D32]" />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-gray-900">Free Trial Credits</div>
+              <div className="text-xs text-gray-400">You used ${creditsUsed.toFixed(2)} / ${initialCredits.toFixed(2)}</div>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4 mt-3 sm:mt-0">
+            <div className="text-right">
+              <div className="text-2xl font-extrabold text-gray-900">${credits.toFixed(2)}</div>
+              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Remaining</div>
+            </div>
+            {usagePercent >= 50 && (
+              <Link 
+                href="/dashboard/credits"
+                className="flex items-center space-x-1 bg-[#1976D2] hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span>Upgrade</span>
+              </Link>
+            )}
+          </div>
+        </div>
+        <div className={`h-3 w-full ${progressBg} rounded-full overflow-hidden`}>
+          <div 
+            className={`h-full ${progressColor} rounded-full transition-all duration-700`}
+            style={{ width: `${usagePercent}%` }}
+          ></div>
+        </div>
+        <div className="flex items-center justify-between mt-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+          <span>0%</span>
+          <span>{usagePercent.toFixed(0)}% used</span>
+          <span>100%</span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

@@ -18,23 +18,33 @@ import {
   ChevronDown,
   UserCircle,
   Shield,
-  X,
   CheckCircle2,
   AlertTriangle,
   Info,
-  Check
+  Check,
+  Zap,
+  TrendingUp,
+  ArrowUpRight
 } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { credits, notifications, unreadCount, loading, markNotificationRead, markAllRead } = useApp();
+  const { 
+    credits, initialCredits, creditsUsed, usagePercent, usageColor,
+    notifications, unreadCount, loading, 
+    markNotificationRead, markAllRead 
+  } = useApp();
   
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
+  const [balanceTooltip, setBalanceTooltip] = useState(false);
   const userDropdownRef = useRef<HTMLDivElement>(null);
   const notifDropdownRef = useRef<HTMLDivElement>(null);
+
+  const isLowBalance = credits <= 2 && credits > 0;
+  const isNoBalance = credits <= 0;
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -82,6 +92,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }
   };
 
+  const progressColor = 
+    usageColor === "green" ? "bg-[#2E7D32]" :
+    usageColor === "yellow" ? "bg-yellow-500" : "bg-red-500";
+
+  const progressBg = 
+    usageColor === "green" ? "bg-[#E8F5E9]" :
+    usageColor === "yellow" ? "bg-yellow-50" : "bg-red-50";
+
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Sidebar */}
@@ -112,14 +130,45 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </div>
 
         <div className="p-4 border-t border-gray-100">
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+          <div 
+            className="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm relative"
+            onMouseEnter={() => setBalanceTooltip(true)}
+            onMouseLeave={() => setBalanceTooltip(false)}
+          >
+            {/* Credit Tooltip */}
+            {balanceTooltip && (
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-xl z-50">
+                <div className="text-center">
+                  <div className="font-bold">Cost per document: $0.05</div>
+                  <div className="text-gray-400 mt-1">~{Math.max(0, Math.floor(credits / 0.05))} extractions remaining</div>
+                </div>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+              </div>
+            )}
+
             <div className="flex items-center text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
               <CreditCard className="w-3.5 h-3.5 mr-2" />
               Your Balance
             </div>
-            <div className="text-2xl font-bold text-[#2E7D32] mb-3 flex items-center">
+            <div className="text-2xl font-bold text-[#2E7D32] mb-2 flex items-center">
               {loading ? <Loader2 className="w-5 h-5 animate-spin text-gray-300" /> : `$${credits?.toFixed(2)}`}
             </div>
+            
+            {/* Credit Usage Progress Bar */}
+            {!loading && (
+              <div className="mb-3">
+                <div className="flex items-center justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">
+                  <span>You used ${creditsUsed.toFixed(2)} / ${initialCredits.toFixed(2)}</span>
+                </div>
+                <div className={`h-2 w-full ${progressBg} rounded-full overflow-hidden`}>
+                  <div 
+                    className={`h-full ${progressColor} rounded-full transition-all duration-700`}
+                    style={{ width: `${usagePercent}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
+
             <Link href="/dashboard/credits" className="block text-center text-xs font-bold bg-[#E8F5E9] text-[#2E7D32] py-2.5 rounded-md hover:bg-[#C8E6C9] transition-colors">
               Manage Wallet
             </Link>
@@ -250,6 +299,34 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
         </header>
+
+        {/* Low Balance Banner */}
+        {(isLowBalance || isNoBalance) && (
+          <div className={`px-6 py-3 flex items-center justify-between shrink-0 animate-in slide-in-from-top duration-300 ${
+            isNoBalance ? "bg-red-50 border-b border-red-100" : "bg-yellow-50 border-b border-yellow-100"
+          }`}>
+            <div className="flex items-center space-x-3">
+              <AlertTriangle className={`w-5 h-5 ${isNoBalance ? "text-red-600" : "text-yellow-600"}`} />
+              <span className={`text-sm font-bold ${isNoBalance ? "text-red-700" : "text-yellow-700"}`}>
+                {isNoBalance 
+                  ? "You have no credits remaining." 
+                  : "You're running low on credits. Recharge to continue."
+                }
+              </span>
+            </div>
+            <Link 
+              href="/dashboard/credits"
+              className={`flex items-center space-x-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                isNoBalance 
+                  ? "bg-red-600 hover:bg-red-700 text-white" 
+                  : "bg-yellow-600 hover:bg-yellow-700 text-white"
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5" />
+              <span>Recharge Now</span>
+            </Link>
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto w-full scroll-smooth">
           <div className="p-6 md:p-8 max-w-7xl mx-auto min-h-full">

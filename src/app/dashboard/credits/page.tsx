@@ -59,11 +59,12 @@ export default function CreditsPage() {
   };
 
   const usageHistory = [
-    { id: 1, type: "deduction", desc: "Document extraction - Invoice_2024.pdf", amount: -0.05, date: "Mar 30, 2026" },
-    { id: 2, type: "deduction", desc: "Document extraction - Receipt_March.png", amount: -0.05, date: "Mar 29, 2026" },
-    { id: 3, type: "topup", desc: "Wallet top-up", amount: 10.00, date: "Mar 28, 2026" },
-    { id: 4, type: "deduction", desc: "Document extraction - Contract_v2.pdf", amount: -0.05, date: "Mar 27, 2026" },
-    { id: 5, type: "deduction", desc: "Document extraction - Timesheet_Q1.pdf", amount: -0.05, date: "Mar 26, 2026" },
+    { id: 0, type: "topup", desc: "+ $10 Free Trial", amount: 10.00, date: "Mar 25, 2026", tag: "Trial" },
+    { id: 1, type: "deduction", desc: "- $0.05 Document processed", amount: -0.05, date: "Mar 26, 2026" },
+    { id: 2, type: "deduction", desc: "- $0.05 Document processed", amount: -0.05, date: "Mar 27, 2026" },
+    { id: 3, type: "deduction", desc: "- $0.05 Document processed", amount: -0.05, date: "Mar 28, 2026" },
+    { id: 4, type: "deduction", desc: "- $0.05 Document processed", amount: -0.05, date: "Mar 29, 2026" },
+    { id: 5, type: "deduction", desc: "- $0.05 Document processed", amount: -0.05, date: "Mar 30, 2026" },
   ];
 
   return (
@@ -277,7 +278,14 @@ export default function CreditsPage() {
                   {item.type === "topup" ? <TrendingUp className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5 rotate-90" />}
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-gray-900">{item.desc}</div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-bold text-gray-900">{item.desc}</span>
+                    {(item as any).tag && (
+                      <span className="text-[9px] font-extrabold bg-[#E8F5E9] text-[#2E7D32] px-2 py-0.5 rounded-full uppercase tracking-wider">
+                        {(item as any).tag}
+                      </span>
+                    )}
+                  </div>
                   <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{item.date}</div>
                 </div>
               </div>
