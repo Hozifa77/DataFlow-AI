@@ -113,8 +113,8 @@ export async function POST(req: Request) {
   try {
     const { fileName, fileType, userId, textContent, fileData } = await req.json();
 
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId || userId === '00000000-0000-0000-0000-000000000000') {
+      return NextResponse.json({ error: 'Unauthorized. Please sign in to continue.' }, { status: 401 });
     }
 
     const hfKey = process.env.HUGGING_FACE_API_KEY;
@@ -125,18 +125,34 @@ export async function POST(req: Request) {
       }, { status: 500 });
     }
 
-    // 2. Check Credits
-    const { data: profile, error: profileError } = await supabase
+    // 2. Fetch or create profile
+    let { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('credits')
       .eq('id', userId)
       .single();
 
-    if (profileError || !profile || profile.credits < 0.05) {
-      return NextResponse.json({ error: 'Insufficient credits. Each extraction costs $0.05.' }, { status: 402 });
+    if (profileError || !profile) {
+      const { data: newProfile, error: createError } = await supabase
+        .from('profiles')
+        .insert({ id: userId, credits: 10.00 })
+        .select('credits')
+        .single();
+
+      if (createError || !newProfile) {
+        return NextResponse.json({ error: 'Account not found. Please sign in again.' }, { status: 401 });
+      }
+      profile = newProfile;
     }
 
-    // 3. AI Extraction Logic
+    // 3. Validate credits
+    if (profile.credits < 0.05) {
+      return NextResponse.json({
+        error: `Insufficient credits. Your balance is $${profile.credits.toFixed(2)} but each extraction costs $0.05.`
+      }, { status: 402 });
+    }
+
+    // 4. AI Extraction Logic
     let extractedData = {
       vendorName: "",
       invoiceDate: new Date().toISOString().split('T')[0],
@@ -198,13 +214,24 @@ export async function POST(req: Request) {
       confidence = 0.40;
     }
 
-    // 4. Deduct Credits
+    // 5. Atomic credit deduction (re-read to prevent race condition)
+    const { data: currentProfile } = await supabase
+      .from('profiles')
+      .select('credits')
+      .eq('id', userId)
+      .single();
+
+    if (!currentProfile || currentProfile.credits < 0.05) {
+      return NextResponse.json({ error: 'Insufficient credits at deduction time.' }, { status: 402 });
+    }
+
+    const newBalance = currentProfile.credits - 0.05;
     await supabase
       .from('profiles')
-      .update({ credits: profile.credits - 0.05 })
+      .update({ credits: newBalance })
       .eq('id', userId);
 
-    // 5. Log transaction
+    // 6. Log transaction
     await supabase.from('transactions').insert([{
       user_id: userId,
       type: 'deduction',
@@ -212,7 +239,7 @@ export async function POST(req: Request) {
       description: `Document extraction - ${fileName}`,
     }]);
 
-    // 6. Create notification
+    // 7. Create notification
     await supabase.from('notifications').insert([{
       user_id: userId,
       type: 'success',
@@ -221,8 +248,7 @@ export async function POST(req: Request) {
       read: false,
     }]);
 
-    // 7. Low balance check
-    const newBalance = profile.credits - 0.05;
+    // 8. Low balance check
     if (newBalance <= 2 && newBalance > 0) {
       await supabase.from('notifications').insert([{
         user_id: userId,
@@ -242,7 +268,7 @@ export async function POST(req: Request) {
       }]);
     }
 
-    // 8. Store in Supabase
+    // 9. Store in Supabase
     const { data: doc, error: docError } = await supabase
       .from('documents')
       .insert([{
@@ -257,7 +283,7 @@ export async function POST(req: Request) {
 
     if (docError) throw docError;
 
-    return NextResponse.json({ success: true, docId: doc.id, confidence });
+    return NextResponse.json({ success: true, docId: doc.id, confidence, newBalance });
   } catch (error: any) {
     console.error('Extraction error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

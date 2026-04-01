@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { UploadCloud, File, Image as ImageIcon, CheckCircle, XCircle, AlertCircle, Loader2, BrainCircuit, Zap, Infinity, ArrowUpRight, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 import { useApp } from "@/contexts/AppContext";
 import Link from "next/link";
 
@@ -13,7 +12,7 @@ export default function UploadPage() {
   const [uploading, setUploading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const router = useRouter();
-  const { credits, showToast, refreshCredits, recordOperation } = useApp();
+  const { credits, user, showToast, refreshCredits, recordOperation } = useApp();
 
   const isNoBalance = credits <= 0;
   const isLowBalance = credits > 0 && credits < 0.05;
@@ -34,8 +33,13 @@ export default function UploadPage() {
     setUploading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const userId = user?.id || '00000000-0000-0000-0000-000000000000'; 
+      const userId = user?.id;
+
+      if (!userId) {
+        setErrorMsg('Please sign in to process documents.');
+        setUploading(false);
+        return;
+      }
 
       const response = await fetch('/api/extract', {
         method: 'POST',
