@@ -230,17 +230,20 @@ export default function UploadPage() {
             <button 
               onClick={handleProcess}
               disabled={uploading || credits < 0.05}
-              className={`w-full sm:w-auto bg-[#2E7D32] hover:bg-[#1B5E20] text-white px-10 py-4 rounded-xl font-bold transition-all shadow-xl hover:shadow-2xl flex items-center justify-center min-w-[220px] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group`}
+              className={`w-full sm:w-auto bg-[#2E7D32] hover:bg-[#1B5E20] text-white px-10 py-4 rounded-xl font-bold transition-all shadow-xl hover:shadow-2xl flex flex-col items-center justify-center min-w-[220px] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group`}
             >
               {uploading ? (
-                <>
+                <span className="flex items-center">
                   <Loader2 className="w-5 h-5 mr-3 animate-spin" />
                   AI Processing...
-                </>
+                </span>
               ) : (
                 <>
-                  <BrainCircuit className="w-5 h-5 mr-3 group-hover:rotate-12 transition-transform" />
-                  Run AI Pipeline
+                  <span className="flex items-center">
+                    <BrainCircuit className="w-5 h-5 mr-3 group-hover:rotate-12 transition-transform" />
+                    Start Data Entry
+                  </span>
+                  <span className="text-[10px] font-medium text-white/70 mt-1 tracking-wide">Upload → Process → Review → Export</span>
                 </>
               )}
             </button>

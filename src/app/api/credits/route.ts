@@ -15,11 +15,11 @@ export async function GET(req: Request) {
       .eq('id', user.id)
       .single();
 
-    if (error) {
-      return NextResponse.json({ credits: 0 }, { status: 200 });
+    if (error || !profile) {
+      return NextResponse.json({ credits: 10.00, demo: true });
     }
 
-    return NextResponse.json({ credits: profile?.credits || 0 });
+    return NextResponse.json({ credits: profile.credits });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

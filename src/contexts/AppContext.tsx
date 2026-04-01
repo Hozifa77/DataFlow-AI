@@ -85,6 +85,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setTimeout(() => setDeductionAnimation(null), 2500);
       }
       checkUpgradePrompt(data.credits, operationCount);
+    } else {
+      const { data: newProfile } = await supabase
+        .from("profiles")
+        .insert({ id: currentUser.id, email: currentUser.email, credits: 10.00 })
+        .select("credits")
+        .single();
+      if (newProfile) setCredits(newProfile.credits);
     }
   }, [credits, operationCount, checkUpgradePrompt]);
 
@@ -161,7 +168,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
           .eq("id", currentUser.id)
           .single();
 
-        if (profile) setCredits(profile.credits);
+        if (profile) {
+          setCredits(profile.credits);
+        } else {
+          const { data: newProfile } = await supabase
+            .from("profiles")
+            .insert({ id: currentUser.id, email: currentUser.email, credits: 10.00 })
+            .select("credits")
+            .single();
+          if (newProfile) setCredits(newProfile.credits);
+        }
 
         const { data: notifs } = await supabase
           .from("notifications")

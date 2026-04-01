@@ -24,7 +24,7 @@ export default function DashboardOverview() {
     { label: "Documents Processed", value: "0", icon: FileText, color: "text-blue-600", bg: "bg-blue-50" },
     { label: "AI Accuracy Rate", value: "0%", icon: CheckCircle2, color: "text-green-600", bg: "bg-green-50" },
     { label: "Processing Time", value: "0s", icon: Clock, color: "text-purple-600", bg: "bg-purple-50" },
-    { label: "Credits Available", value: "$0.00", icon: BrainCircuit, color: "text-orange-600", bg: "bg-orange-50" },
+    { label: "Credits Available", value: `$${credits.toFixed(2)}`, icon: BrainCircuit, color: "text-orange-600", bg: "bg-orange-50" },
   ]);
 
   const [recentDocs, setRecentDocs] = useState<any[]>([]);
@@ -44,12 +44,6 @@ export default function DashboardOverview() {
         .from('documents')
         .select('*', { count: 'exact', head: true });
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('credits')
-        .eq('id', user.id)
-        .single();
-
       const { data: docs } = await supabase
         .from('documents')
         .select('*')
@@ -60,7 +54,7 @@ export default function DashboardOverview() {
         { label: "Documents Processed", value: (totalDocs || 0).toString(), icon: FileText, color: "text-blue-600", bg: "bg-blue-50" },
         { label: "AI Accuracy Rate", value: "98%", icon: CheckCircle2, color: "text-green-600", bg: "bg-green-50" },
         { label: "Processing Time", value: "4.5s", icon: Clock, color: "text-purple-600", bg: "bg-purple-50" },
-        { label: "Credits Available", value: `$${(profile?.credits || 0).toFixed(2)}`, icon: BrainCircuit, color: "text-orange-600", bg: "bg-orange-50" },
+        { label: "Credits Available", value: `$${credits.toFixed(2)}`, icon: BrainCircuit, color: "text-orange-600", bg: "bg-orange-50" },
       ]);
 
       if (docs) setRecentDocs(docs);
@@ -68,7 +62,7 @@ export default function DashboardOverview() {
     }
 
     fetchData();
-  }, []);
+  }, [credits]);
 
   const progressColor = 
     usageColor === "green" ? "bg-[#2E7D32]" :
