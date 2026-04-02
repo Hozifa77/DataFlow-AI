@@ -1,10 +1,41 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, BrainCircuit, CheckCircle2, Database, FileSpreadsheet, Fingerprint, Lock, ShieldCheck, Upload } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowRight, BrainCircuit, CheckCircle2, Database, FileSpreadsheet, Fingerprint, Lock, ShieldCheck, Upload, User } from "lucide-react";
 import { motion } from "framer-motion";
+import { createClient } from "@/lib/supabase/client";
 
 export default function LandingPage() {
+  const router = useRouter();
+  const supabase = createClient();
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function checkAuth() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUser(session.user);
+        router.replace('/dashboard');
+      } else {
+        setLoading(false);
+      }
+    }
+    checkAuth();
+  }, [router, supabase]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-[#2E7D32] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
+
   return (
     <div className="min-h-screen bg-gray-50 selection:bg-green-100">
       {/* Navigation */}
@@ -23,15 +54,32 @@ export default function LandingPage() {
               <a href="#pricing" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Pricing</a>
             </div>
             <div className="flex items-center space-x-4">
-              <Link href="/login" className="hidden md:block text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
-                Sign In
-              </Link>
-              <Link
-                href="/signup"
-                className="bg-[#2E7D32] hover:bg-[#1B5E20] text-white px-5 py-2.5 rounded-md text-sm font-medium transition-all shadow-sm hover:shadow-md"
-              >
-                Get Started
-              </Link>
+              {user ? (
+                <>
+                  <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600">
+                    <User className="w-4 h-4" />
+                    <span>{userName}</span>
+                  </div>
+                  <Link
+                    href="/dashboard"
+                    className="bg-[#2E7D32] hover:bg-[#1B5E20] text-white px-5 py-2.5 rounded-md text-sm font-medium transition-all shadow-sm hover:shadow-md"
+                  >
+                    Extract Data Now
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link href="/login" className="hidden md:block text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/signup"
+                    className="bg-[#2E7D32] hover:bg-[#1B5E20] text-white px-5 py-2.5 rounded-md text-sm font-medium transition-all shadow-sm hover:shadow-md"
+                  >
+                    Get Started
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -51,26 +99,33 @@ export default function LandingPage() {
               Enterprise-Grade AI Extraction
             </div>
             <h1 className="text-5xl md:text-7xl font-extrabold text-gray-900 tracking-tight leading-tight">
-              Automate Data Entry with <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#2E7D32] to-[#1976D2]">AI Accuracy</span>
+              {user ? `Welcome back, ${userName}` : 'Automate Data Entry with '} 
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#2E7D32] to-[#1976D2]">
+                {user ? '' : 'AI Accuracy'}
+              </span>
             </h1>
             <p className="text-xl md:text-2xl text-gray-600 font-light max-w-3xl mx-auto leading-relaxed">
-              Transform unstructured documents into perfectly structured data in seconds. Human-in-the-loop AI extraction with uncompromising enterprise privacy guarantees.
+              {user 
+                ? 'Continue extracting data from your documents. Upload now to get started.' 
+                : 'Transform unstructured documents into perfectly structured data in seconds. Human-in-the-loop AI extraction with uncompromising enterprise privacy guarantees.'}
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4 pt-6">
               <Link
-                href="/signup"
+                href={user ? "/dashboard/upload" : "/signup"}
                 className="w-full sm:w-auto bg-[#2E7D32] hover:bg-[#1B5E20] text-white px-8 py-4 rounded-md text-lg font-medium transition-all shadow-lg hover:shadow-xl flex items-center justify-center group"
               >
-                Start Free Trial
+                {user ? 'Extract Data Now' : 'Start Free Trial'}
                 <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
               </Link>
-              <a
-                href="#how-it-works"
-                className="w-full sm:w-auto bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-8 py-4 rounded-md text-lg font-medium transition-all shadow-sm"
-              >
-                See How It Works
-              </a>
+              {!user && (
+                <a
+                  href="#how-it-works"
+                  className="w-full sm:w-auto bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-8 py-4 rounded-md text-lg font-medium transition-all shadow-sm"
+                >
+                  See How It Works
+                </a>
+              )}
             </div>
             
             <p className="text-sm text-gray-500 mt-6 flex items-center justify-center">
@@ -174,13 +229,13 @@ export default function LandingPage() {
             <BrainCircuit className="w-16 h-16 text-[#4CAF50] mx-auto mb-8" />
             <h2 className="text-4xl font-bold mb-6">Scale your operations securely</h2>
             <p className="text-xl text-gray-400 font-light mb-10 leading-relaxed">
-              We envisioned a world where data entry doesn't consume human potential. By merging world-class private AI with an elegant human validation layer, our tools ensure accurate data processing that you can trust completely.
+              We envisioned a world where data entry doesn&apos;t consume human potential. By merging world-class private AI with an elegant human validation layer, our tools ensure accurate data processing that you can trust completely.
             </p>
             <Link
-              href="/signup"
+              href={user ? "/dashboard/upload" : "/signup"}
               className="inline-block bg-[#4CAF50] hover:bg-[#388E3C] text-white px-8 py-4 rounded-md text-lg font-bold transition-transform hover:-translate-y-1 shadow-lg"
             >
-              Start Automating Today
+              {user ? 'Continue Extracting' : 'Start Automating Today'}
             </Link>
           </div>
         </section>
