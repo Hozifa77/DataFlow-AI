@@ -209,6 +209,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     async function init() {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       await loadUserData(currentUser);
+
+      if (currentUser && (window.location.pathname === '/login' || window.location.pathname === '/signup' || window.location.pathname === '/')) {
+        window.location.href = '/dashboard';
+      }
     }
 
     init();
@@ -220,8 +224,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setCredits(INITIAL_CREDITS);
           setNotifications([]);
           setLoading(false);
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
         } else if (_event === "SIGNED_IN" && session?.user) {
           await loadUserData(session.user);
+          if (window.location.pathname === '/login' || window.location.pathname === '/signup' || window.location.pathname === '/' || window.location.pathname.startsWith('/auth')) {
+            window.location.href = '/dashboard';
+          }
         }
       }
     );
@@ -230,6 +240,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       subscription.unsubscribe();
     };
   }, [loadUserData]);
+
+  useEffect(() => {
+    if (window.location.pathname === '/example-user' || window.location.pathname === '/user' || window.location.pathname.startsWith('/auth/callback')) {
+      return;
+    }
+  }, []);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
