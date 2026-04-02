@@ -146,9 +146,9 @@ export default function UploadPage() {
         </div>
       )}
 
-      {/* Main Action Button - ALWAYS VISIBLE above fold */}
+      {/* Main Action Button - ALWAYS VISIBLE, STICKY on mobile */}
       {files.length === 0 && !isNoBalance && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-lg p-6">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-lg p-6 sticky top-0 z-20 -mt-4 mb-4">
           <button 
             onClick={() => document.getElementById('file-input')?.click()}
             className="w-full bg-[#2E7D32] hover:bg-[#1B5E20] text-white px-8 py-5 rounded-xl font-bold transition-all shadow-lg hover:shadow-xl flex items-center justify-center group"
