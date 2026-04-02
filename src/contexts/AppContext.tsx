@@ -33,6 +33,7 @@ interface AppContextType {
   showToast: (message: string, type?: "success" | "error" | "info" | "celebration") => void;
   dismissUpgradePrompt: () => void;
   recordOperation: () => void;
+  logout: () => Promise<void>;
 }
 
 const INITIAL_CREDITS = 10.0;
@@ -156,50 +157,79 @@ export function AppProvider({ children }: { children: ReactNode }) {
     upgradeDismissed.current = true;
   }, []);
 
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setCredits(INITIAL_CREDITS);
+    setNotifications([]);
+    window.location.href = "/login";
+  }, []);
+
+  const loadUserData = useCallback(async (currentUser: any) => {
+    setUser(currentUser);
+
+    if (currentUser) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("credits")
+        .eq("id", currentUser.id)
+        .single();
+
+      if (profile) {
+        setCredits(profile.credits);
+      } else {
+        const { data: newProfile } = await supabase
+          .from("profiles")
+          .insert({ id: currentUser.id, email: currentUser.email, credits: 10.00 })
+          .select("credits")
+          .single();
+        if (newProfile) setCredits(newProfile.credits);
+      }
+
+      const { data: notifs } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", currentUser.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (notifs) setNotifications(notifs);
+    } else {
+      setCredits(INITIAL_CREDITS);
+      setNotifications([
+        { id: "1", type: "success", title: "Welcome", message: "Your account is ready. You have $10.00 in credits.", read: false, created_at: new Date().toISOString() },
+        { id: "2", type: "info", title: "Getting Started", message: "Upload your first document to begin extracting data.", read: false, created_at: new Date().toISOString() },
+      ]);
+    }
+
+    setLoading(false);
+  }, []);
+
   useEffect(() => {
     async function init() {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
-      setUser(currentUser);
-
-      if (currentUser) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("credits")
-          .eq("id", currentUser.id)
-          .single();
-
-        if (profile) {
-          setCredits(profile.credits);
-        } else {
-          const { data: newProfile } = await supabase
-            .from("profiles")
-            .insert({ id: currentUser.id, email: currentUser.email, credits: 10.00 })
-            .select("credits")
-            .single();
-          if (newProfile) setCredits(newProfile.credits);
-        }
-
-        const { data: notifs } = await supabase
-          .from("notifications")
-          .select("*")
-          .eq("user_id", currentUser.id)
-          .order("created_at", { ascending: false })
-          .limit(20);
-
-        if (notifs) setNotifications(notifs);
-      } else {
-        setCredits(INITIAL_CREDITS);
-        setNotifications([
-          { id: "1", type: "success", title: "Welcome", message: "Your account is ready. You have $10.00 in credits.", read: false, created_at: new Date().toISOString() },
-          { id: "2", type: "info", title: "Getting Started", message: "Upload your first document to begin extracting data.", read: false, created_at: new Date().toISOString() },
-        ]);
-      }
-
-      setLoading(false);
+      await loadUserData(currentUser);
     }
 
     init();
-  }, []);
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (_event === "SIGNED_OUT") {
+          setUser(null);
+          setCredits(INITIAL_CREDITS);
+          setNotifications([]);
+          setLoading(false);
+        } else if (_event === "SIGNED_IN" && session?.user) {
+          await loadUserData(session.user);
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [loadUserData]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -225,6 +255,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       showToast,
       dismissUpgradePrompt,
       recordOperation,
+      logout,
     }}>
       {children}
 

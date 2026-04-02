@@ -23,11 +23,11 @@ export default function LandingPage() {
               <a href="#pricing" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Pricing</a>
             </div>
             <div className="flex items-center space-x-4">
-              <Link href="/dashboard" className="hidden md:block text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+              <Link href="/login" className="hidden md:block text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
                 Sign In
               </Link>
               <Link
-                href="/dashboard"
+                href="/signup"
                 className="bg-[#2E7D32] hover:bg-[#1B5E20] text-white px-5 py-2.5 rounded-md text-sm font-medium transition-all shadow-sm hover:shadow-md"
               >
                 Get Started
@@ -59,7 +59,7 @@ export default function LandingPage() {
 
             <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4 pt-6">
               <Link
-                href="/dashboard"
+                href="/signup"
                 className="w-full sm:w-auto bg-[#2E7D32] hover:bg-[#1B5E20] text-white px-8 py-4 rounded-md text-lg font-medium transition-all shadow-lg hover:shadow-xl flex items-center justify-center group"
               >
                 Start Free Trial
@@ -159,7 +159,7 @@ export default function LandingPage() {
               </ul>
 
               <Link
-                href="/dashboard"
+                href="/signup"
                 className="block w-full bg-[#1976D2] hover:bg-blue-700 text-white px-6 py-3 rounded-md text-lg font-medium transition-colors"
                >
                 View Credit Wallet
@@ -177,7 +177,7 @@ export default function LandingPage() {
               We envisioned a world where data entry doesn't consume human potential. By merging world-class private AI with an elegant human validation layer, our tools ensure accurate data processing that you can trust completely.
             </p>
             <Link
-              href="/dashboard"
+              href="/signup"
               className="inline-block bg-[#4CAF50] hover:bg-[#388E3C] text-white px-8 py-4 rounded-md text-lg font-bold transition-transform hover:-translate-y-1 shadow-lg"
             >
               Start Automating Today
