@@ -4,10 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BrainCircuit, Check, Eye, EyeOff, Loader2, Lock, Mail, User } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 
 export default function SignupPage() {
   const router = useRouter();
+  const supabase = createClient();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -76,8 +77,17 @@ export default function SignupPage() {
       }
 
       if (data.user) {
-        router.push("/dashboard");
-        router.refresh();
+        if (data.session) {
+          router.push("/dashboard");
+          router.refresh();
+        } else {
+          // If email confirmations are enabled in Supabase, session will be null
+          setError("Success! Please check your email to verify your account.");
+          setFullName("");
+          setEmail("");
+          setPassword("");
+          setConfirmPassword("");
+        }
       }
     } catch {
       setError("An unexpected error occurred. Please try again.");
