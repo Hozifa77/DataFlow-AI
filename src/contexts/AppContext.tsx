@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from "react";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 
 interface Notification {
   id: string;
@@ -42,6 +42,7 @@ const COST_PER_DOC = 0.05;
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const supabase = createClient();
   const [user, setUser] = useState<any>(null);
   const [credits, setCredits] = useState<number>(INITIAL_CREDITS);
   const [notifications, setNotifications] = useState<Notification[]>([]);
