@@ -103,7 +103,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col hidden md:flex">
-        <Link href="/" className="h-16 flex items-center px-6 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer">
+        <Link href="/dashboard" className="h-16 flex items-center px-6 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer">
           <BrainCircuit className="w-6 h-6 text-[#2E7D32] mr-2" />
           <span className="font-bold text-lg text-gray-900 tracking-tight">Loro Entry</span>
         </Link>

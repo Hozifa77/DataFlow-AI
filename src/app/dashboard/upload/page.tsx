@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { useApp } from "@/contexts/AppContext";
 import Link from "next/link";
 
+const COST_PER_PAGE = 0.05;
+
 export default function UploadPage() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
@@ -14,8 +16,17 @@ export default function UploadPage() {
   const router = useRouter();
   const { credits, user, showToast, refreshCredits, recordOperation } = useApp();
 
+  const estimatePages = (file: File): number => {
+    const sizeMB = file.size / (1024 * 1024);
+    if (sizeMB <= 1) return 1;
+    return Math.ceil(sizeMB);
+  };
+
+  const totalPages = files.reduce((sum, f) => sum + estimatePages(f), 0);
+  const totalCost = totalPages * COST_PER_PAGE;
   const isNoBalance = credits <= 0;
-  const isLowBalance = credits > 0 && credits < 0.05;
+  const isLowBalance = credits > 0 && credits < totalCost;
+  const canProcess = files.length > 0 && credits >= totalCost;
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -28,7 +39,7 @@ export default function UploadPage() {
 
   const handleProcess = async () => {
     if (files.length === 0) return;
-    if (isNoBalance || isLowBalance) return;
+    if (!canProcess) return;
     setErrorMsg(null);
     setUploading(true);
 
@@ -48,6 +59,7 @@ export default function UploadPage() {
           fileName: files[0].name,
           fileType: files[0].type,
           userId,
+          pageCount: totalPages,
         }),
       });
 
@@ -62,7 +74,7 @@ export default function UploadPage() {
       showToast("🎉 Your document was processed successfully!", "celebration");
 
       setTimeout(() => {
-        showToast(`Keep going — you still have $${(credits - 0.05).toFixed(2)} remaining`, "info");
+        showToast(`Keep going — you still have $${(credits - totalCost).toFixed(2)} remaining`, "info");
       }, 2000);
 
       router.push(`/dashboard/validation/${result.docId}`);
@@ -134,42 +146,63 @@ export default function UploadPage() {
         </div>
       )}
 
-      {/* Upload Area - Disabled when no balance */}
+      {/* Main Action Button - ALWAYS VISIBLE above fold */}
+      {files.length === 0 && !isNoBalance && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-lg p-6">
+          <button 
+            onClick={() => document.getElementById('file-input')?.click()}
+            className="w-full bg-[#2E7D32] hover:bg-[#1B5E20] text-white px-8 py-5 rounded-xl font-bold transition-all shadow-lg hover:shadow-xl flex items-center justify-center group"
+          >
+            <BrainCircuit className="w-5 h-5 mr-3 group-hover:rotate-12 transition-transform" />
+            Start Data Entry
+          </button>
+          <p className="text-center text-xs text-gray-400 mt-3">Upload a file to begin extraction</p>
+          <input 
+            id="file-input"
+            type="file" 
+            className="hidden" 
+            onChange={(e) => {
+              if (e.target.files?.length) {
+                setFiles(Array.from(e.target.files));
+              }
+            }}
+          />
+        </div>
+      )}
+
+      {/* Upload Area - Compact */}
       <div 
         onDragOver={isNoBalance ? undefined : (e) => { e.preventDefault(); setIsDragOver(true); }}
         onDragLeave={isNoBalance ? undefined : () => setIsDragOver(false)}
         onDrop={isNoBalance ? undefined : handleDrop}
-        className={`relative border-2 border-dashed rounded-3xl p-16 text-center transition-all duration-300 ${
+        className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 ${
           isNoBalance 
             ? "border-gray-100 bg-gray-50/50 opacity-50 cursor-not-allowed" 
             : isDragOver 
-              ? "border-[#2E7D32] bg-[#E8F5E9] scale-[1.01] shadow-xl" 
-              : "border-gray-200 bg-white hover:border-[#2E7D32]/50 hover:bg-gray-50/50"
+              ? "border-[#2E7D32] bg-[#E8F5E9] shadow-xl" 
+              : "border-gray-200 bg-white hover:border-[#2E7D32]/50"
         }`}
       >
-        <div className={`w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-inner transition-all duration-500 ${
+        <div className={`w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-4 transition-all ${
           isNoBalance ? 'bg-gray-100' :
-          isDragOver ? 'bg-white scale-110 rotate-3 shadow-lg' : 'bg-gray-50'
+          isDragOver ? 'bg-white shadow-lg' : 'bg-gray-50'
         }`}>
           {isNoBalance ? (
-            <Lock className="w-12 h-12 text-gray-300" />
+            <Lock className="w-8 h-8 text-gray-300" />
           ) : (
-            <UploadCloud className={`w-12 h-12 ${isDragOver ? "text-[#2E7D32]" : "text-gray-300"}`} />
+            <UploadCloud className={`w-8 h-8 ${isDragOver ? "text-[#2E7D32]" : "text-gray-300"}`} />
           )}
         </div>
         
-        <h3 className="text-2xl font-extrabold text-gray-900 mb-2">
-          {isNoBalance ? "Upload disabled" : "Drop your files here"}
+        <h3 className="text-lg font-bold text-gray-900 mb-1">
+          {isNoBalance ? "Upload disabled" : "Drop files here"}
         </h3>
-        <p className="text-gray-400 mb-10 max-w-sm mx-auto font-medium">
-          {isNoBalance ? "Recharge your credits to continue processing documents." : "Automate invoices, receipts, and forms in seconds."}
-          {!isNoBalance && (
-            <span className="block mt-1 text-xs text-gray-300 font-bold uppercase tracking-widest">Supports PDF, PNG, JPG</span>
-          )}
+        <p className="text-gray-400 text-sm">
+          {isNoBalance ? "Recharge credits to continue." : "PDF, PNG, JPG supported"}
         </p>
         
         {!isNoBalance && (
-          <label className="bg-[#111827] hover:bg-black text-white px-8 py-4 rounded-xl font-bold cursor-pointer transition-all shadow-lg inline-flex items-center group active:scale-95">
+          <label className="bg-[#111827] hover:bg-black text-white px-6 py-3 rounded-lg font-bold cursor-pointer transition-all shadow-md inline-flex items-center mt-4">
             Choose Files
             <input 
               type="file" 
@@ -185,7 +218,7 @@ export default function UploadPage() {
         )}
       </div>
 
-      {files.length > 0 && !isNoBalance && (
+{files.length > 0 && !isNoBalance && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-xl p-8 space-y-6 animate-in fade-in zoom-in duration-300">
           <div className="flex items-center justify-between border-b border-gray-50 pb-5">
             <h4 className="font-extrabold text-gray-900">
@@ -196,7 +229,7 @@ export default function UploadPage() {
                 className="text-xs font-bold text-gray-400 hover:text-red-500 transition-colors uppercase tracking-widest"
               >
                 Clear All
-              </button>
+            </button>
           </div>
           
           <div className="space-y-4">
@@ -210,7 +243,9 @@ export default function UploadPage() {
                   </div>
                   <div>
                     <p className="font-bold text-gray-900 text-sm">{file.name}</p>
-                    <p className="text-[10px] text-gray-400 font-extrabold tracking-widest uppercase">{(file.size / 1024).toFixed(1)} KB</p>
+                    <p className="text-[10px] text-gray-400 font-extrabold tracking-widest uppercase">
+                      {(file.size / 1024).toFixed(1)} KB · ~{estimatePages(file)} page{estimatePages(file) > 1 ? 's' : ''}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
@@ -226,14 +261,14 @@ export default function UploadPage() {
             <div className="flex flex-col">
                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1">Estimated Cost</div>
                <div className="text-xl font-extrabold text-gray-900 flex items-center">
-                  $0.05
-                  <span className="ml-2 text-[10px] font-bold text-gray-400 uppercase">per extraction</span>
+                  ${totalCost.toFixed(2)}
+                  <span className="ml-2 text-[10px] font-bold text-gray-400 uppercase">({totalPages} page{totalPages > 1 ? 's' : ''} @ $0.05)</span>
                </div>
             </div>
             
             <button 
               onClick={handleProcess}
-              disabled={uploading || credits < 0.05}
+              disabled={uploading || !canProcess}
               className={`w-full sm:w-auto bg-[#2E7D32] hover:bg-[#1B5E20] text-white px-10 py-4 rounded-xl font-bold transition-all shadow-xl hover:shadow-2xl flex flex-col items-center justify-center min-w-[220px] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group`}
             >
               {uploading ? (
